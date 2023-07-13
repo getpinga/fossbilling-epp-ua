@@ -11,6 +11,8 @@
 class Registrar_Adapter_UA extends Registrar_AdapterAbstract
 {
     public $config = array();
+    public $socket;
+    public $isLogined;
 
     public function __construct($options)
     {
@@ -28,6 +30,20 @@ class Registrar_Adapter_UA extends Registrar_AdapterAbstract
         }
         if(isset($options['registrarprefix'])) {
             $this->config['registrarprefix'] = $options['registrarprefix'];
+        }
+        if(isset($options['ssl_cert'])) {
+            $this->config['ssl_cert'] = $options['ssl_cert'];
+        }
+        if(isset($options['ssl_key'])) {
+            $this->config['ssl_key'] = $options['ssl_key'];
+        }
+        if(isset($options['ssl_ca'])) {
+            $this->config['ssl_ca'] = $options['ssl_ca'];
+        }
+        if(isset($options['use_tls_12'])) {
+            $this->config['use_tls_12'] = (bool)$options['use_tls_12'];
+        } else {
+            $this->config['use_tls_12'] = false;
         }
     }
 
@@ -49,6 +65,7 @@ class Registrar_Adapter_UA extends Registrar_AdapterAbstract
                 'password' => array('password', array(
                     'label' => 'EPP Server Password',
                     'required' => true,
+                    'renderPassword' => true,
                 ),
                 ),
                 'host' => array('text', array(
@@ -66,6 +83,26 @@ class Registrar_Adapter_UA extends Registrar_AdapterAbstract
                     'required' => true,
                 ),
                 ),
+                'ssl_cert' => array('text', array(
+                    'label' => 'SSL Certificate Path',
+                    'required' => true,
+                ),
+                ),
+                'ssl_key' => array('text', array(
+                    'label' => 'SSL Key Path',
+                    'required' => true,
+                ),
+                ),
+                'ssl_ca' => array('text', array(
+                    'label' => 'SSL CA Path',
+                    'required' => false,
+                ),
+                ),
+                'use_tls_12' => array('radio', array(
+                     'multiOptions' => array('1'=>'Yes', '0'=>'No'),
+                     'label' => 'Use TLS 1.2 instead of 1.3',
+                 ),
+                 ),
             ),
         );
     }
@@ -285,16 +322,72 @@ class Registrar_Adapter_UA extends Registrar_AdapterAbstract
 
     public function getDomainDetails(Registrar_Domain $domain)
     {
-        $this->getLog()->debug('Getting whois: ' . $domain->getName());
+        $this->getLog()->debug('Getting domain details: ' . $domain->getName());
+		try {
+			$s	= $this->connect();
+			$this->login();
+			$from = $to = array();
+			$from[] = '/{{ name }}/';
+			$to[] = htmlspecialchars($domain->getName());
+			$from[] = '/{{ clTRID }}/';
+			$clTRID = str_replace('.', '', round(microtime(1), 3));
+			$to[] = htmlspecialchars($this->config['registrarprefix'] . '-domain-info-' . $clTRID);
+			$xml = preg_replace($from, $to, '<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <command>
+    <info>
+      <domain:info xmlns:domain="http://hostmaster.ua/epp/domain-1.1">
+			<domain:name hosts="all">{{ name }}</domain:name>
+		  </domain:info>
+		</info>
+		<clTRID>{{ clTRID }}</clTRID>
+	  </command>
+	</epp>');
+			$r = $this->write($xml, __FUNCTION__);
+			$r = $r->response->resData->children('http://hostmaster.ua/epp/domain-1.1')->infData;
+			$crDate = (string)$r->crDate;
+			$exDate = (string)$r->exDate;
+			$eppcode = (string)$r->authInfo->pw;
 
-        if(!$domain->getRegistrationTime()) {
-            $domain->setRegistrationTime(time());
-        }
-        if(!$domain->getExpirationTime()) {
-            $years = $domain->getRegistrationPeriod();
-            $domain->setExpirationTime(strtotime("+$years year"));
-        }
-        return $domain;
+			$status = array();
+			$i = 0;
+			foreach ($r->status as $e) {
+			    $i++;
+			    $status[$i] = (string)$e->attributes()->s;
+			}
+			$ns = array();
+			$i = 0;
+			foreach ($r->ns->hostObj as $hostObj) {
+			    $i++;
+			    $ns[$i] = (string)$hostObj;
+			}
+			
+			$crDate = strtotime($crDate);
+			$exDate = strtotime($exDate);
+
+			$domain->setRegistrationTime($crDate);
+			$domain->setExpirationTime($exDate);
+			$domain->setEpp($eppcode);
+
+			$domain->setNs1(isset($ns[0]) ? $ns[0] : '');
+			$domain->setNs2(isset($ns[1]) ? $ns[1] : '');
+			$domain->setNs3(isset($ns[2]) ? $ns[2] : '');
+			$domain->setNs4(isset($ns[3]) ? $ns[3] : '');
+		}
+
+		catch(exception $e) {
+			$domain = array(
+				'error' => $e->getMessage()
+			);
+		}
+
+		if (!empty($s)) {
+			$this->logout();
+		}
+
+		return $domain;
     }
 
     public function deleteDomain(Registrar_Domain $domain)
@@ -1207,6 +1300,7 @@ if (empty($eppcode)) {
 	{
 		$host = $this->config['host'];
 		$port = $this->config['port'];
+		$timeout = 30;
 		
 		$opts = array(
 			'ssl' => array(
@@ -1214,8 +1308,8 @@ if (empty($eppcode)) {
 				'verify_peer_name' => false,
 				'verify_host' => false,
 				'allow_self_signed' => true,
-				'local_cert' => 'cert.pem',
-				'local_pk' => 'key.pem'
+				'local_cert' => $this->config['ssl_cert'],
+				'local_pk' => $this->config['ssl_key']
 			)
 		);
 		$context = stream_context_create($opts);
