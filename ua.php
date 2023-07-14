@@ -702,7 +702,6 @@ class Registrar_Adapter_UA extends Registrar_AdapterAbstract
     <info>
       <domain:info xmlns:domain="http://hostmaster.ua/epp/domain-1.1">
         <domain:name>{{ name }}</domain:name>
-        {{ authInfo }}
       </domain:info>
     </info>
     <clTRID>{{ clTRID }}</clTRID>
