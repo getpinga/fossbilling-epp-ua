@@ -1,8 +1,6 @@
 # Compatibility
 
-This module is supposed to work with:
-
-- Hostmaster.ua (.ua)
+This module is designed for use with Hostmaster.ua (.ua) (https://www.hostmaster.ua/).
 
 # FOSSBilling Module Installation instructions
 
@@ -14,13 +12,13 @@ Start by downloading the latest version of FOSSBilling from the official website
 
 First, download this repository which contains the ua.php file. After successfully downloading the repository, move the ua.php file into the `[FOSSBilling]/library/Registrar/Adapter` directory.
 
-Next, rename `epp.php` as `YourRegistryName.php`. Please ensure to replace "**YourRegistryName**" with the actual name of your registry.
+Next, rename `ua.php` as `YourRegistryName.php`. Please ensure to replace "**YourRegistryName**" with the actual name of your registry.
 
-Proceed to open the newly renamed file and locate the phrase "**Registrar_Adapter_EPP**". Replace it with "**Registrar_Adapter_YourRegistryName**".
+Proceed to open the newly renamed file and locate the phrase "**Registrar_Adapter_UA**". Replace it with "**Registrar_Adapter_YourRegistryName**".
 
 ## 3. Addition of Synchronization Scripts:
 
-There are two additional scripts in the repository: **uaSync.php** and **Tembo.php**. These need to be placed in the main `[FOSSBilling]` directory.
+There are two additional scripts in the repository: **uaSync.php** and **uaEpp.php**. These need to be placed in the main `[FOSSBilling]` directory.
 
 Rename `uaSync.php` to `YourRegistryNameSync.php`.
 
