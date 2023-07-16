@@ -13,7 +13,7 @@ namespace Pinga\Tembo;
 use Pinga\Tembo\Exception\EppException;
 use Pinga\Tembo\Exception\EppNotConnectedException;
 
-class Epp
+class uaEpp
 {
     private $resource;
     private $isLoggedIn;
@@ -2417,7 +2417,7 @@ class Epp
 
     public function _response_log($content)
     {
-        $handle = fopen(dirname(__FILE__) . '/response.log', 'a');
+        $handle = fopen(dirname(__FILE__) . '/ua_response.log', 'a');
         ob_start();
         echo "\n==================================\n";
         ob_end_clean();
@@ -2427,7 +2427,7 @@ class Epp
 
     public function _request_log($content)
     {
-        $handle = fopen(dirname(__FILE__) . '/request.log', 'a');
+        $handle = fopen(dirname(__FILE__) . '/ua_request.log', 'a');
         ob_start();
         echo "\n==================================\n";
         ob_end_clean();
