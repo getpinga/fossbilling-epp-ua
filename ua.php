@@ -900,7 +900,7 @@ class Registrar_Adapter_UA extends Registrar_AdapterAbstract
                 $from[] = '/{{ id }}/';
                 $to[] = htmlspecialchars($id);
                 $from[] = '/{{ flag }}/';
-                $to[] = 1;
+                $to[] = 0;
                 $from[] = '/{{ clTRID }}/';
                 $clTRID = str_replace('.', '', round(microtime(1) , 3));
                 $to[] = htmlspecialchars($this->config['registrarprefix'] . '-contact-update-' . $clTRID);
@@ -994,7 +994,7 @@ class Registrar_Adapter_UA extends Registrar_AdapterAbstract
                 $from[] = '/{{ id }}/';
                 $to[] = htmlspecialchars($id);
                 $from[] = '/{{ flag }}/';
-                $to[] = 0;
+                $to[] = 1;
                 $from[] = '/{{ clTRID }}/';
                 $clTRID = str_replace('.', '', round(microtime(1) , 3));
                 $to[] = htmlspecialchars($this->config['registrarprefix'] . '-contact-update-' . $clTRID);
